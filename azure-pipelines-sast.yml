@@ -1,0 +1,37 @@
+# Docker
+# Build a Docker image 
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+- main
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)'
+
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:  
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        docker run \
+          -v "$(Build.SourcesDirectory):/apps/js-calc-frontend" \ 
+          -v "$(Build.ArtifactStagingDirectory):/reports" \
+          shiftleft/sast-scan scan --src /app --build \
+          --out_dir /reports/CodeAnalysisLogs
+      displayName: "Perform Scan"
+      continueOnError: "true"
+
+    - task: PublishBuildArtifacts@1
+      displayName: "Publish analysis logs"
+      inputs:
+        PathtoPublish: "$(Build.ArtifactStagingDirectory)/CodeAnalysisLogs"
+        ArtifactName: "CodeAnalysisLogs"
+        publishLocation: "Container"
